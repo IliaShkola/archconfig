@@ -21,7 +21,21 @@ echo "==> Копирование dotfiles..."
 mkdir -p "$HOME/suckless"
 
 cd suckless
+
 git clone git://git.suckless.org/dwm
 cd dwm
 sudo make clean install
+cd ..
 
+git clone git://git.suckless.org/st
+cd st
+sudo make clean install
+cd..
+
+git clone git://git.suckless.org/dmenu
+cd dmenu
+sudo make clean install
+
+
+# Additional packages
+sudo pacman -S --noconfirm --needed feh
