@@ -49,17 +49,22 @@ mkdir -p "$HOME/suckless"
 build_and_install dwm
 build_and_install st
 build_and_install dmenu
+build_and_install slstatus
 
 echo "==> Creating ~/.xinitrc"
 mkdir -p "$HOME"
 if [[ ! -f "$HOME/.xinitrc" ]]; then
   cat > "$HOME/.xinitrc" <<'EOF'
 #!/bin/sh
+slstatus &
 exec dwm
 EOF
 else
+  if ! grep -q 'slstatus &' "$HOME/.xinitrc"; then
+    printf '\n# Added by install.sh\nslstatus &\n' >> "$HOME/.xinitrc"
+  fi
   if ! grep -q 'exec dwm' "$HOME/.xinitrc"; then
-    printf '\n# Added by install.sh\nexec dwm\n' >> "$HOME/.xinitrc"
+    printf 'exec dwm\n' >> "$HOME/.xinitrc"
   fi
 fi
 chmod +x "$HOME/.xinitrc"
