@@ -95,7 +95,7 @@ install_packages \
   git base-devel wget curl btop mc fastfetch neovim \
   xorg-server xorg-xinit xorg-xsetroot libx11 libxft libxinerama \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
-  feh thunar ranger chromium nano vim
+  feh thunar ranger chromium nano vim code obsidian
 log_success "Core packages installed"
 
 log_step "Preparing suckless directory"
@@ -133,7 +133,7 @@ else
     printf '\n# Added by install.sh\nslstatus &\n' >> "$HOME/.xinitrc"
   fi
   if ! grep -Eq 'feh .*bg-fill' "$HOME/.xinitrc"; then
-    printf '\n# Added by install.sh\nfeh -bg-fill "%s" &\n' "$wallpaper_target" >> "$HOME/.xinitrc"
+    printf '\n# Added by install.sh\nfeh --bg-fill "%s" &\n' "$wallpaper_target" >> "$HOME/.xinitrc"
   fi
   if ! grep -q 'exec dwm' "$HOME/.xinitrc"; then
     printf 'exec dwm\n' >> "$HOME/.xinitrc"
