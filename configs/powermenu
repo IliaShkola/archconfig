@@ -1,0 +1,18 @@
+#!/bin/bash
+
+chosen=$(
+	printf '%s\n' \
+		"Poweroff" \
+		"Reboot" \
+		"Lock" \
+		"Logout" |
+	dmenu -i -p "Power menu:"
+)
+
+
+case "$chosen" in
+	"Poweroff") systemctl poweroff ;;
+	"Reboot") systemctl reboot ;;
+	"Lock") slock ;;
+	"Logout") pkill -KILL -u $USER ;;
+esac

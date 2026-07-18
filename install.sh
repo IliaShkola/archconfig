@@ -95,7 +95,7 @@ install_packages \
   git base-devel wget curl btop mc fastfetch neovim \
   xorg-server xorg-xinit xorg-xsetroot libx11 libxft libxinerama \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
-  feh thunar ranger chromium nano vim code obsidian
+  feh thunar ranger chromium nano vim code obsidian slock
 log_success "Core packages installed"
 
 log_step "Preparing suckless directory"
