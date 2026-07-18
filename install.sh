@@ -64,6 +64,12 @@ build_and_install() {
     st)
       config_source="$SCRIPT_DIR/configs/st/config.h"
       ;;
+    dmenu)
+      config_source="$SCRIPT_DIR/configs/dmenu/config.h"
+      ;;
+    slstatus)
+      config_source="$SCRIPT_DIR/configs/slstatus/config.h"
+      ;;
   esac
 
   log_step "Building and installing $repo_name"
@@ -76,15 +82,17 @@ build_and_install() {
   fi
 
   pushd "$target_dir" >/dev/null
-  if [[ -f config.def.h ]]; then
+  if [[ -f config.def.h ]] && [[ ! -f config.h ]]; then
     cp -f config.def.h config.h
   fi
-  sudo make clean install
 
   if [[ -n "$config_source" && -f "$config_source" ]]; then
     cp -f "$config_source" config.h
-    sudo make clean install
+  else
+    log_warn "Custom config not found for $repo_name at $config_source"
   fi
+
+  sudo make clean install
   popd >/dev/null
 
   log_success "$repo_name installed"
@@ -100,6 +108,19 @@ log_success "Core packages installed"
 
 log_step "Preparing suckless directory"
 mkdir -p "$HOME/suckless"
+
+log_step "Preparing ~/.local/bin"
+local_bin_dir="$HOME/.local/bin"
+powermenu_source="$SCRIPT_DIR/configs/powermenu"
+powermenu_target="$local_bin_dir/powermenu"
+mkdir -p "$local_bin_dir"
+if [[ -f "$powermenu_source" ]]; then
+  cp -f "$powermenu_source" "$powermenu_target"
+  chmod +x "$powermenu_target"
+  log_success "powermenu installed to $powermenu_target"
+else
+  log_warn "powermenu script not found at $powermenu_source"
+fi
 
 log_step "Preparing wallpaper directory"
 wallpaper_dir="$HOME/Documents/Pictures/Wallpapers"
