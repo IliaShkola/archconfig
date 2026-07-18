@@ -39,6 +39,8 @@ if [[ $EUID -eq 0 ]]; then
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if ! command -v pacman >/dev/null 2>&1; then
   log_warn "This script is intended for Arch-based systems with pacman."
   exit 1
@@ -53,6 +55,16 @@ install_packages() {
 build_and_install() {
   local repo_name="$1"
   local target_dir="$HOME/suckless/$repo_name"
+  local config_source=""
+
+  case "$repo_name" in
+    dwm)
+      config_source="$SCRIPT_DIR/configs/dwm/config.h"
+      ;;
+    st)
+      config_source="$SCRIPT_DIR/configs/st/config.h"
+      ;;
+  esac
 
   log_step "Building and installing $repo_name"
 
@@ -68,6 +80,11 @@ build_and_install() {
     cp -f config.def.h config.h
   fi
   sudo make clean install
+
+  if [[ -n "$config_source" && -f "$config_source" ]]; then
+    cp -f "$config_source" config.h
+    sudo make clean install
+  fi
   popd >/dev/null
 
   log_success "$repo_name installed"
@@ -84,6 +101,19 @@ log_success "Core packages installed"
 log_step "Preparing suckless directory"
 mkdir -p "$HOME/suckless"
 
+log_step "Preparing wallpaper directory"
+wallpaper_dir="$HOME/Documents/Pictures/Wallpapers"
+wallpaper_file="space.jpg"
+wallpaper_source="$SCRIPT_DIR/wallpapers/$wallpaper_file"
+wallpaper_target="$wallpaper_dir/$wallpaper_file"
+mkdir -p "$wallpaper_dir"
+if [[ -f "$wallpaper_source" ]]; then
+  cp -f "$wallpaper_source" "$wallpaper_target"
+  log_success "Wallpaper copied to $wallpaper_target"
+else
+  log_warn "Wallpaper source not found at $wallpaper_source"
+fi
+
 build_and_install dwm
 build_and_install st
 build_and_install dmenu
@@ -92,14 +122,18 @@ build_and_install slstatus
 log_step "Creating ~/.xinitrc"
 mkdir -p "$HOME"
 if [[ ! -f "$HOME/.xinitrc" ]]; then
-  cat > "$HOME/.xinitrc" <<'EOF'
+  cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
 slstatus &
+feh -bg-fill "$wallpaper_target" &
 exec dwm
 EOF
 else
   if ! grep -q 'slstatus &' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nslstatus &\n' >> "$HOME/.xinitrc"
+  fi
+  if ! grep -Eq 'feh .*bg-fill' "$HOME/.xinitrc"; then
+    printf '\n# Added by install.sh\nfeh -bg-fill "%s" &\n' "$wallpaper_target" >> "$HOME/.xinitrc"
   fi
   if ! grep -q 'exec dwm' "$HOME/.xinitrc"; then
     printf 'exec dwm\n' >> "$HOME/.xinitrc"
