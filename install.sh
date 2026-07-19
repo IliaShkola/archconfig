@@ -158,9 +158,10 @@ mkdir -p "$HOME"
 if [[ ! -f "$HOME/.xinitrc" ]]; then
   cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
+setxkbmap -layout "us,ru" -option "grp:alt_shift_toggle"
 slstatus &
 conky -c "$HOME/.config/conky/config.conf" &
-feh -bg-fill "$wallpaper_target" &
+feh --bg-fill "$wallpaper_target" &
 exec dwm
 EOF
 else
