@@ -103,7 +103,7 @@ install_packages \
   git base-devel wget curl btop mc fastfetch neovim \
   xorg-server xorg-xinit xorg-xsetroot libx11 libxft libxinerama \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
-  feh thunar ranger chromium nano vim code obsidian slock
+  feh thunar ranger chromium nano vim code obsidian slock conky
 log_success "Core packages installed"
 
 log_step "Preparing suckless directory"
@@ -120,6 +120,18 @@ if [[ -f "$powermenu_source" ]]; then
   log_success "powermenu installed to $powermenu_target"
 else
   log_warn "powermenu script not found at $powermenu_source"
+fi
+
+log_step "Preparing Conky config"
+conky_dir="$HOME/.config/conky"
+conky_source="$SCRIPT_DIR/configs/conky/config.conf"
+conky_target="$conky_dir/config.conf"
+mkdir -p "$conky_dir"
+if [[ -f "$conky_source" ]]; then
+  cp -f "$conky_source" "$conky_target"
+  log_success "Conky config copied to $conky_target"
+else
+  log_warn "Conky config not found at $conky_source"
 fi
 
 log_step "Preparing wallpaper directory"
@@ -146,12 +158,16 @@ if [[ ! -f "$HOME/.xinitrc" ]]; then
   cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
 slstatus &
+conky -c "$HOME/.config/conky/config.conf" &
 feh -bg-fill "$wallpaper_target" &
 exec dwm
 EOF
 else
   if ! grep -q 'slstatus &' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nslstatus &\n' >> "$HOME/.xinitrc"
+  fi
+  if ! grep -q 'conky -c ' "$HOME/.xinitrc"; then
+    printf '\n# Added by install.sh\nconky -c "%s" &\n' "$HOME/.config/conky/config.conf" >> "$HOME/.xinitrc"
   fi
   if ! grep -Eq 'feh .*bg-fill' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nfeh --bg-fill "%s" &\n' "$wallpaper_target" >> "$HOME/.xinitrc"
