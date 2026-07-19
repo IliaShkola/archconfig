@@ -200,7 +200,22 @@ EOF
 fi
 log_success "Automatic startx configured"
 
+log_step "Removing archconfig repository"
+if [[ -n "$SCRIPT_DIR" && "$SCRIPT_DIR" != "/" && -d "$SCRIPT_DIR" ]]; then
+  cd "$HOME" || true
+  rm -rf "$SCRIPT_DIR"
+  log_success "Removed repository folder $SCRIPT_DIR"
+else
+  log_warn "Repository folder $SCRIPT_DIR was not removed"
+fi
+
 log_step "Installation complete"
-log_info "Run startx to launch dwm"
+log_info "Starting X session with startx..."
+
+if [[ -z "${DISPLAY-}" ]]; then
+  exec startx
+else
+  log_warn "DISPLAY is already set; X session is likely already running. Skipping startx."
+fi
 
 
