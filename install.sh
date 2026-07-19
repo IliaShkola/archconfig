@@ -199,9 +199,9 @@ EOF
   fi
 fi
 
-sudo systemctl disable --now getty@tty1.service || true
-sudo systemctl enable --now ly@tty1.service || true
-log_success "Ly configured on tty1"
+# sudo systemctl disable --now getty@tty1.service || true
+sudo systemctl enable ly@tty1.service || true
+log_success "Ly enabled on tty1"
 
 log_step "Removing archconfig repository"
 if [[ -n "$SCRIPT_DIR" && "$SCRIPT_DIR" != "/" && -d "$SCRIPT_DIR" ]]; then
@@ -213,6 +213,8 @@ else
 fi
 
 log_step "Installation complete"
+sudo systemctl start ly@tty1.service || true
+log_success "Ly started on tty1"
 log_info "Starting X session with startx..."
 
 if [[ -z "${DISPLAY-}" ]]; then
