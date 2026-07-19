@@ -103,7 +103,8 @@ install_packages \
   git base-devel wget curl btop mc fastfetch neovim \
   xorg-server xorg-xinit xorg-xsetroot libx11 libxft libxinerama \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
-  feh thunar ranger chromium nano vim code obsidian slock conky ly
+  feh thunar ranger nano vim code obsidian slock conky ly \
+  polkit lazygit
 log_success "Core packages installed"
 
 log_step "Preparing suckless directory"
@@ -202,6 +203,31 @@ fi
 # sudo systemctl disable --now getty@tty1.service || true
 sudo systemctl enable ly@tty1.service || true
 log_success "Ly enabled on tty1"
+
+
+
+log_step "Installing Yay from AUR"
+if [[ -d "$HOME/yay" ]]; then
+  git -C "$HOME/yay" pull --ff-only || true
+else
+  git clone https://aur.archlinux.org/yay.git "$HOME/yay"
+fi
+
+cd "$HOME/yay"
+makepkg -si --noconfirm
+log_success "Yay installed"
+
+log_step "Installing Brave from AUR"
+yay -S --noconfirm brave-bin
+log_success "Brave installed"
+
+log_step "Installing LazyVim"
+if [[ -d "$HOME/.config/nvim" ]]; then
+  rm -rf "$HOME/.config/nvim"
+fi
+git clone https://github.com/LazyVim/starter "$HOME/.config/nvim"
+rm -rf "$HOME/.config/nvim/.git"
+log_success "LazyVim starter installed"
 
 log_step "Removing archconfig repository"
 if [[ -n "$SCRIPT_DIR" && "$SCRIPT_DIR" != "/" && -d "$SCRIPT_DIR" ]]; then
