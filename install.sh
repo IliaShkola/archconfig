@@ -103,7 +103,7 @@ install_packages \
   git base-devel wget curl btop mc fastfetch neovim \
   xorg-server xorg-xinit xorg-xsetroot libx11 libxft libxinerama \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
-  feh thunar ranger chromium nano vim code obsidian slock conky
+  feh thunar ranger chromium nano vim code obsidian slock conky ly
 log_success "Core packages installed"
 
 log_step "Preparing suckless directory"
@@ -179,26 +179,29 @@ fi
 chmod +x "$HOME/.xinitrc"
 log_success "~/.xinitrc ready"
 
-log_step "Configuring automatic startx for tty1"
+log_step "Configuring Ly tty1 login manager"
 if [[ ! -f "$HOME/.bash_profile" ]]; then
   cat > "$HOME/.bash_profile" <<'EOF'
-# Auto-start X11 on tty1
-if [[ -z $DISPLAY ]] && [[ $(tty) = /dev/tty1 ]]; then
-    exec startx
+# Prevent tty1 auto-start scripts from interfering with ly
+if [[ -n $DISPLAY ]]; then
+    return
 fi
 EOF
 else
-  if ! grep -q 'exec startx' "$HOME/.bash_profile"; then
+  if ! grep -q 'Prevent tty1 auto-start scripts from interfering with ly' "$HOME/.bash_profile"; then
     cat >> "$HOME/.bash_profile" <<'EOF'
 
-# Auto-start X11 on tty1
-if [[ -z $DISPLAY ]] && [[ $(tty) = /dev/tty1 ]]; then
-    exec startx
+# Prevent tty1 auto-start scripts from interfering with ly
+if [[ -n $DISPLAY ]]; then
+    return
 fi
 EOF
   fi
 fi
-log_success "Automatic startx configured"
+
+sudo systemctl disable --now getty@tty1.service || true
+sudo systemctl enable --now ly@tty1.service || true
+log_success "Ly configured on tty1"
 
 log_step "Removing archconfig repository"
 if [[ -n "$SCRIPT_DIR" && "$SCRIPT_DIR" != "/" && -d "$SCRIPT_DIR" ]]; then
