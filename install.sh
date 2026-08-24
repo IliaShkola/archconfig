@@ -104,24 +104,34 @@ install_packages \
   xorg-server xorg-xinit xorg-xsetroot libx11 libxft libxinerama \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
   feh thunar ranger nano vim code obsidian slock conky ly \
-  polkit lazygit
+  polkit lazygit \
+  pipewire pipewire-pulse wireplumber pamixer
 log_success "Core packages installed"
+
+log_step "Enabling PipeWire user services"
+systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service || true
+log_success "PipeWire user services enabled"
 
 log_step "Preparing suckless directory"
 mkdir -p "$HOME/suckless"
 
 log_step "Preparing ~/.local/bin"
 local_bin_dir="$HOME/.local/bin"
-powermenu_source="$SCRIPT_DIR/configs/powermenu"
-powermenu_target="$local_bin_dir/powermenu"
 mkdir -p "$local_bin_dir"
-if [[ -f "$powermenu_source" ]]; then
-  cp -f "$powermenu_source" "$powermenu_target"
-  chmod +x "$powermenu_target"
-  log_success "powermenu installed to $powermenu_target"
-else
-  log_warn "powermenu script not found at $powermenu_source"
-fi
+install_local_bin() {
+  local name="$1"
+  local source="$SCRIPT_DIR/configs/$name"
+  local target="$local_bin_dir/$name"
+  if [[ -f "$source" ]]; then
+    cp -f "$source" "$target"
+    chmod +x "$target"
+    log_success "$name installed to $target"
+  else
+    log_warn "$name script not found at $source"
+  fi
+}
+install_local_bin powermenu
+install_local_bin sb-vol
 
 log_step "Preparing Conky config"
 conky_dir="$HOME/.config/conky"
@@ -158,6 +168,7 @@ mkdir -p "$HOME"
 if [[ ! -f "$HOME/.xinitrc" ]]; then
   cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
+export PATH="\$HOME/.local/bin:\$PATH"
 setxkbmap -layout "us,ru" -option "grp:alt_shift_toggle"
 slstatus &
 conky -c "$HOME/.config/conky/config.conf" &
@@ -165,6 +176,9 @@ feh --bg-fill "$wallpaper_target" &
 exec dwm
 EOF
 else
+  if ! grep -q '.local/bin' "$HOME/.xinitrc"; then
+    printf '\n# Added by install.sh\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$HOME/.xinitrc"
+  fi
   if ! grep -q 'slstatus &' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nslstatus &\n' >> "$HOME/.xinitrc"
   fi

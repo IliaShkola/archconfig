@@ -1,0 +1,20 @@
+#!/bin/sh
+# Compact volume glyph + percent for slstatus (Font Awesome).
+
+pamixer=/usr/bin/pamixer
+
+if ! vol="$($pamixer --get-volume 2>/dev/null)"; then
+	printf ' n/a'
+	exit 0
+fi
+
+if [ "$($pamixer --get-mute 2>/dev/null)" = "true" ]; then
+	printf ' mute'
+	exit 0
+fi
+
+if [ "$vol" -gt 50 ]; then
+	printf ' %s%%' "$vol"
+else
+	printf ' %s%%' "$vol"
+fi

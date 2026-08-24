@@ -66,7 +66,8 @@ static const char unknown_str[] = "n/a";
  */
 static const struct arg args[] = {
 	/* function format          argument */
-	{ keymap,          " %s | ",        NULL },
-    { battery_perc,    "BAT %s%% | ",   "BAT0" },
-	{ datetime,        "%s",            "%F %T" },
+	{ keymap,          " %s | ",                 NULL },
+	{ run_command,     "%s | ",                  "$HOME/.local/bin/sb-vol" },
+	{ battery_perc,    "BAT %s%% | ",            "BAT0" },
+	{ datetime,        "%s",                     "%F %T" },
 };
