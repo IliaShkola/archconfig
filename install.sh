@@ -105,7 +105,7 @@ install_packages \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
   feh thunar ranger nano vim code obsidian slock conky ly \
   polkit lazygit \
-  pipewire pipewire-pulse wireplumber pamixer brightnessctl
+  pipewire pipewire-pulse wireplumber pamixer brightnessctl flameshot
 log_success "Core packages installed"
 
 log_step "Allowing backlight control via video group"

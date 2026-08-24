@@ -34,8 +34,9 @@ static const Rule rules[] = {
 	 *	WM_NAME(STRING) = title
 	 */
 	/* class      instance    title       tags mask     isfloating   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+	{ "Gimp",      NULL,       NULL,       0,            1,           -1 },
+	{ "flameshot", NULL,       NULL,       0,            1,           -1 },
+	{ "Firefox",   NULL,       NULL,       1 << 8,       0,           -1 },
 };
 
 /* layout(s) */
@@ -81,7 +82,9 @@ static const Key keys[] = {
 	{ MODKEY,	                      XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      spawn,          SHCMD("brave") }, 
 	{ MODKEY,                       XK_e,      spawn,          SHCMD("thunar") }, 
-	{ MODKEY|ShiftMask,                       XK_l,      spawn,          SHCMD("slock") }, 
+	{ MODKEY|ShiftMask,                       XK_l,      spawn,          SHCMD("slock") },
+	{ MODKEY|ShiftMask,         XK_s,          spawn,          SHCMD("flameshot gui -c") },
+	{ 0,                        XK_Print,      spawn,          SHCMD("flameshot full -c") }, 
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
