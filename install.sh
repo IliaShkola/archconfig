@@ -105,8 +105,12 @@ install_packages \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
   feh thunar ranger nano vim code obsidian slock conky ly \
   polkit lazygit \
-  pipewire pipewire-pulse wireplumber pamixer
+  pipewire pipewire-pulse wireplumber pamixer brightnessctl
 log_success "Core packages installed"
+
+log_step "Allowing backlight control via video group"
+sudo usermod -aG video "$USER" || true
+log_success "User $USER added to video group"
 
 log_step "Enabling PipeWire user services"
 systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service || true
@@ -132,6 +136,7 @@ install_local_bin() {
 }
 install_local_bin powermenu
 install_local_bin sb-vol
+install_local_bin sb-bright
 
 log_step "Preparing Conky config"
 conky_dir="$HOME/.config/conky"

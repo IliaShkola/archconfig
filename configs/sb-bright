@@ -1,0 +1,20 @@
+#!/bin/sh
+# Compact brightness glyph + percent for slstatus (Font Awesome).
+
+bctl=/usr/bin/brightnessctl
+
+if ! out="$($bctl -m 2>/dev/null)"; then
+	printf ' n/a'
+	exit 0
+fi
+
+perc="${out#*,*,*,}"
+perc="${perc%%,*}"
+perc="${perc%%%}"
+
+if [ -z "$perc" ]; then
+	printf ' n/a'
+	exit 0
+fi
+
+printf ' %s%%' "$perc"

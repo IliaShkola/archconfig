@@ -68,6 +68,7 @@ static const struct arg args[] = {
 	/* function format          argument */
 	{ keymap,          " %s | ",                 NULL },
 	{ run_command,     "%s | ",                  "$HOME/.local/bin/sb-vol" },
+	{ run_command,     "%s | ",                  "$HOME/.local/bin/sb-bright" },
 	{ battery_perc,    "BAT %s%% | ",            "BAT0" },
 	{ datetime,        "%s",                     "%F %T" },
 };
