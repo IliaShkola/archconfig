@@ -52,14 +52,36 @@ install_packages() {
   sudo pacman -S --noconfirm --needed "$@"
 }
 
+# dwm systray patch is written against this suckless/dwm commit.
+DWM_COMMIT="44dbc68"
+DWM_SYSTRAY_PATCH="$SCRIPT_DIR/patches/dwm-systray.diff"
+
+ensure_git_commit() {
+  local repo_dir="$1"
+  local commit="$2"
+
+  if git -C "$repo_dir" cat-file -e "${commit}^{commit}" 2>/dev/null; then
+    return 0
+  fi
+
+  log_info "Fetching commit $commit"
+  git -C "$repo_dir" fetch --unshallow 2>/dev/null || true
+  git -C "$repo_dir" fetch origin "$commit" || git -C "$repo_dir" fetch origin
+  git -C "$repo_dir" cat-file -e "${commit}^{commit}"
+}
+
 build_and_install() {
   local repo_name="$1"
   local target_dir="$HOME/suckless/$repo_name"
   local config_source=""
+  local git_pin=""
+  local patch_file=""
 
   case "$repo_name" in
     dwm)
       config_source="$SCRIPT_DIR/configs/dwm/config.h"
+      git_pin="$DWM_COMMIT"
+      patch_file="$DWM_SYSTRAY_PATCH"
       ;;
     st)
       config_source="$SCRIPT_DIR/configs/st/config.h"
@@ -74,14 +96,31 @@ build_and_install() {
 
   log_step "Building and installing $repo_name"
 
-  if [[ ! -d "$target_dir" ]]; then
-    git clone --depth 1 "https://git.suckless.org/$repo_name" "$target_dir"
-  else
+  if [[ ! -d "$target_dir/.git" ]]; then
+    if [[ -n "$git_pin" ]]; then
+      git clone "https://git.suckless.org/$repo_name" "$target_dir"
+    else
+      git clone --depth 1 "https://git.suckless.org/$repo_name" "$target_dir"
+    fi
+  elif [[ -z "$git_pin" ]]; then
     log_info "Updating $repo_name"
     git -C "$target_dir" pull --ff-only || true
   fi
 
   pushd "$target_dir" >/dev/null
+
+  if [[ -n "$git_pin" ]]; then
+    ensure_git_commit "$target_dir" "$git_pin"
+    git reset --hard "$git_pin"
+    git clean -fd
+    if [[ -n "$patch_file" && -f "$patch_file" ]]; then
+      log_info "Applying $(basename "$patch_file")"
+      git apply "$patch_file" || patch -p1 --forward < "$patch_file"
+    else
+      log_warn "Patch not found at $patch_file"
+    fi
+  fi
+
   if [[ -f config.def.h ]] && [[ ! -f config.h ]]; then
     cp -f config.def.h config.h
   fi
@@ -105,8 +144,18 @@ install_packages \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
   feh thunar ranger nano vim code obsidian slock conky ly \
   polkit lazygit \
+  networkmanager network-manager-applet adwaita-icon-theme \
   pipewire pipewire-pulse wireplumber pamixer brightnessctl flameshot
 log_success "Core packages installed"
+
+log_step "Enabling NetworkManager"
+for svc in iwd dhcpcd netctl systemd-networkd connman; do
+  if systemctl list-unit-files "$svc.service" >/dev/null 2>&1; then
+    sudo systemctl disable --now "$svc.service" 2>/dev/null || true
+  fi
+done
+sudo systemctl enable --now NetworkManager
+log_success "NetworkManager enabled"
 
 log_step "Allowing backlight control via video group"
 sudo usermod -aG video "$USER" || true
@@ -176,6 +225,7 @@ if [[ ! -f "$HOME/.xinitrc" ]]; then
 export PATH="\$HOME/.local/bin:\$PATH"
 setxkbmap -layout "us,ru" -option "grp:alt_shift_toggle"
 slstatus &
+nm-applet &
 conky -c "$HOME/.config/conky/config.conf" &
 feh --bg-fill "$wallpaper_target" &
 exec dwm
@@ -186,6 +236,13 @@ else
   fi
   if ! grep -q 'slstatus &' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nslstatus &\n' >> "$HOME/.xinitrc"
+  fi
+  if ! grep -q 'nm-applet' "$HOME/.xinitrc"; then
+    if grep -q 'exec dwm' "$HOME/.xinitrc"; then
+      sed -i '/exec dwm/i nm-applet &' "$HOME/.xinitrc"
+    else
+      printf '\n# Added by install.sh\nnm-applet &\n' >> "$HOME/.xinitrc"
+    fi
   fi
   if ! grep -q 'conky -c ' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nconky -c "%s" &\n' "$HOME/.config/conky/config.conf" >> "$HOME/.xinitrc"
