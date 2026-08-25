@@ -145,6 +145,7 @@ install_packages \
   feh thunar ranger nano vim code obsidian slock conky ly \
   polkit lazygit \
   networkmanager network-manager-applet adwaita-icon-theme \
+  bluez bluez-utils blueman \
   pipewire pipewire-pulse wireplumber pamixer brightnessctl flameshot
 log_success "Core packages installed"
 
@@ -156,6 +157,10 @@ for svc in iwd dhcpcd netctl systemd-networkd connman; do
 done
 sudo systemctl enable --now NetworkManager
 log_success "NetworkManager enabled"
+
+log_step "Enabling Bluetooth"
+sudo systemctl enable --now bluetooth
+log_success "Bluetooth enabled"
 
 log_step "Allowing backlight control via video group"
 sudo usermod -aG video "$USER" || true
@@ -226,6 +231,7 @@ export PATH="\$HOME/.local/bin:\$PATH"
 setxkbmap -layout "us,ru" -option "grp:alt_shift_toggle"
 slstatus &
 nm-applet &
+blueman-applet &
 conky -c "$HOME/.config/conky/config.conf" &
 feh --bg-fill "$wallpaper_target" &
 exec dwm
@@ -242,6 +248,13 @@ else
       sed -i '/exec dwm/i nm-applet &' "$HOME/.xinitrc"
     else
       printf '\n# Added by install.sh\nnm-applet &\n' >> "$HOME/.xinitrc"
+    fi
+  fi
+  if ! grep -q 'blueman-applet' "$HOME/.xinitrc"; then
+    if grep -q 'exec dwm' "$HOME/.xinitrc"; then
+      sed -i '/exec dwm/i blueman-applet &' "$HOME/.xinitrc"
+    else
+      printf '\n# Added by install.sh\nblueman-applet &\n' >> "$HOME/.xinitrc"
     fi
   fi
   if ! grep -q 'conky -c ' "$HOME/.xinitrc"; then
