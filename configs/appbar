@@ -1,0 +1,8 @@
+#!/bin/bash
+
+printf '%s\n' \
+	"^ca(1,st &)^ca()  ^ca(1,brave &)^ca()  ^ca(1,code &)^ca()  ^ca(1,obsidian &)^ca()" |
+dzen2 -p -x 12 -y 40 -w 176 -h 28 -ta c \
+	-bg "#222222" -fg "#eeeeee" \
+	-fn "Font Awesome 6 Free:style=Solid:size=12" \
+	-e ""

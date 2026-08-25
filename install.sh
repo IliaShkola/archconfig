@@ -142,7 +142,7 @@ install_packages \
   git base-devel wget curl btop mc fastfetch neovim \
   xorg-server xorg-xinit xorg-xsetroot libx11 libxft libxinerama \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
-  feh thunar ranger nano vim code obsidian slock conky ly \
+  feh thunar ranger nano vim code obsidian slock conky dzen2 ly \
   polkit lazygit \
   networkmanager network-manager-applet adwaita-icon-theme \
   bluez bluez-utils blueman \
@@ -189,6 +189,7 @@ install_local_bin() {
   fi
 }
 install_local_bin powermenu
+install_local_bin appbar
 install_local_bin sb-vol
 install_local_bin sb-bright
 
@@ -233,6 +234,7 @@ slstatus &
 nm-applet &
 blueman-applet &
 conky -c "$HOME/.config/conky/config.conf" &
+appbar &
 feh --bg-fill "$wallpaper_target" &
 exec dwm
 EOF
@@ -259,6 +261,13 @@ else
   fi
   if ! grep -q 'conky -c ' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nconky -c "%s" &\n' "$HOME/.config/conky/config.conf" >> "$HOME/.xinitrc"
+  fi
+  if ! grep -q 'appbar' "$HOME/.xinitrc"; then
+    if grep -q 'exec dwm' "$HOME/.xinitrc"; then
+      sed -i '/exec dwm/i appbar &' "$HOME/.xinitrc"
+    else
+      printf '\n# Added by install.sh\nappbar &\n' >> "$HOME/.xinitrc"
+    fi
   fi
   if ! grep -Eq 'feh .*bg-fill' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nfeh --bg-fill "%s" &\n' "$wallpaper_target" >> "$HOME/.xinitrc"
