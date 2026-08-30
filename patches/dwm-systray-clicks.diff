@@ -1,0 +1,28 @@
+diff --git a/dwm.c b/dwm.c
+--- a/dwm.c
++++ b/dwm.c
+@@ -459,12 +459,24 @@ buttonpress(XEvent *e)
+ 	click = ClkRootWin;
+ 	/* focus monitor if necessary */
+ 	if ((m = wintomon(ev->window)) && m != selmon) {
+ 		unfocus(selmon->sel, 1);
+ 		selmon = m;
+ 		focus(NULL);
+ 	}
++	if (showsystray && systray && ev->window == systray->win) {
++		for (c = systray->icons; c; c = c->next) {
++			if (ev->x >= c->x && ev->x < c->x + c->w) {
++				e->xbutton.window = c->win;
++				e->xbutton.subwindow = c->win;
++				e->xbutton.x -= c->x;
++				XSendEvent(dpy, c->win, True, ButtonPressMask, e);
++				return;
++			}
++		}
++		return;
++	}
+ 	if (ev->window == selmon->barwin) {
+ 		i = x = 0;
+ 		do
+ 			x += TEXTW(tags[i]);
+ 		while (ev->x >= x && ++i < LENGTH(tags));

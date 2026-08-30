@@ -127,6 +127,7 @@ start_networkmanager() {
 # dwm systray patch is written against this suckless/dwm commit.
 DWM_COMMIT="44dbc68"
 DWM_SYSTRAY_PATCH="$SCRIPT_DIR/patches/dwm-systray.diff"
+DWM_SYSTRAY_CLICKS_PATCH="$SCRIPT_DIR/patches/dwm-systray-clicks.diff"
 
 ensure_git_commit() {
   local repo_dir="$1"
@@ -147,13 +148,13 @@ build_and_install() {
   local target_dir="$HOME/suckless/$repo_name"
   local config_source=""
   local git_pin=""
-  local patch_file=""
+  local patch_files=()
 
   case "$repo_name" in
     dwm)
       config_source="$SCRIPT_DIR/configs/dwm/config.h"
       git_pin="$DWM_COMMIT"
-      patch_file="$DWM_SYSTRAY_PATCH"
+      patch_files=("$DWM_SYSTRAY_PATCH" "$DWM_SYSTRAY_CLICKS_PATCH")
       ;;
     st)
       config_source="$SCRIPT_DIR/configs/st/config.h"
@@ -185,11 +186,16 @@ build_and_install() {
     ensure_git_commit "$target_dir" "$git_pin"
     git reset --hard "$git_pin"
     git clean -fd
-    if [[ -n "$patch_file" && -f "$patch_file" ]]; then
-      log_info "Applying $(basename "$patch_file")"
-      git apply "$patch_file" || patch -p1 --forward < "$patch_file"
-    else
-      log_warn "Patch not found at $patch_file"
+    if ((${#patch_files[@]} > 0)); then
+      local p
+      for p in "${patch_files[@]}"; do
+        if [[ -f "$p" ]]; then
+          log_info "Applying $(basename "$p")"
+          git apply "$p" || patch -p1 --forward < "$p"
+        else
+          log_warn "Patch not found at $p"
+        fi
+      done
     fi
   fi
 
@@ -298,34 +304,46 @@ if [[ ! -f "$HOME/.xinitrc" ]]; then
   cat > "$HOME/.xinitrc" <<EOF
 #!/bin/sh
 export PATH="\$HOME/.local/bin:\$PATH"
+export GDK_CORE_DEVICE_EVENTS=1
+dbus-update-activation-environment --systemd DISPLAY XAUTHORITY 2>/dev/null || true
 setxkbmap -layout "us,ru" -option "grp:alt_shift_toggle"
 slstatus &
-nm-applet &
-blueman-applet &
 conky -c "$HOME/.config/conky/config.conf" &
 appbar &
 feh --bg-fill "$wallpaper_target" &
+(sleep 1 && nm-applet) &
+(sleep 1 && blueman-applet) &
 exec dwm
 EOF
 else
   if ! grep -q '.local/bin' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$HOME/.xinitrc"
   fi
+  if ! grep -q 'GDK_CORE_DEVICE_EVENTS' "$HOME/.xinitrc"; then
+    printf '\n# Added by install.sh\nexport GDK_CORE_DEVICE_EVENTS=1\n' >> "$HOME/.xinitrc"
+  fi
+  if ! grep -q 'dbus-update-activation-environment' "$HOME/.xinitrc"; then
+    printf '\n# Added by install.sh\ndbus-update-activation-environment --systemd DISPLAY XAUTHORITY 2>/dev/null || true\n' >> "$HOME/.xinitrc"
+  fi
   if ! grep -q 'slstatus &' "$HOME/.xinitrc"; then
     printf '\n# Added by install.sh\nslstatus &\n' >> "$HOME/.xinitrc"
   fi
-  if ! grep -q 'nm-applet' "$HOME/.xinitrc"; then
+  if grep -qE '^[[:space:]]*nm-applet[[:space:]]*&' "$HOME/.xinitrc"; then
+    sed -i 's|^[[:space:]]*nm-applet[[:space:]]*&|(sleep 1 \&\& nm-applet) \&|' "$HOME/.xinitrc"
+  elif ! grep -q 'nm-applet' "$HOME/.xinitrc"; then
     if grep -q 'exec dwm' "$HOME/.xinitrc"; then
-      sed -i '/exec dwm/i nm-applet &' "$HOME/.xinitrc"
+      sed -i '/exec dwm/i (sleep 1 \&\& nm-applet) \&' "$HOME/.xinitrc"
     else
-      printf '\n# Added by install.sh\nnm-applet &\n' >> "$HOME/.xinitrc"
+      printf '\n# Added by install.sh\n(sleep 1 && nm-applet) &\n' >> "$HOME/.xinitrc"
     fi
   fi
-  if ! grep -q 'blueman-applet' "$HOME/.xinitrc"; then
+  if grep -qE '^[[:space:]]*blueman-applet[[:space:]]*&' "$HOME/.xinitrc"; then
+    sed -i 's|^[[:space:]]*blueman-applet[[:space:]]*&|(sleep 1 \&\& blueman-applet) \&|' "$HOME/.xinitrc"
+  elif ! grep -q 'blueman-applet' "$HOME/.xinitrc"; then
     if grep -q 'exec dwm' "$HOME/.xinitrc"; then
-      sed -i '/exec dwm/i blueman-applet &' "$HOME/.xinitrc"
+      sed -i '/exec dwm/i (sleep 1 \&\& blueman-applet) \&' "$HOME/.xinitrc"
     else
-      printf '\n# Added by install.sh\nblueman-applet &\n' >> "$HOME/.xinitrc"
+      printf '\n# Added by install.sh\n(sleep 1 && blueman-applet) &\n' >> "$HOME/.xinitrc"
     fi
   fi
   if ! grep -q 'conky -c ' "$HOME/.xinitrc"; then
