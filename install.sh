@@ -52,6 +52,78 @@ install_packages() {
   sudo pacman -S --noconfirm --needed "$@"
 }
 
+service_exists() {
+  systemctl cat "$1.service" >/dev/null 2>&1
+}
+
+require_network() {
+  if command -v curl >/dev/null 2>&1 && curl -fsS --max-time 5 https://archlinux.org >/dev/null 2>&1; then
+    return 0
+  fi
+  if ping -c 1 -W 3 archlinux.org >/dev/null 2>&1; then
+    return 0
+  fi
+  if ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
+    return 0
+  fi
+  log_warn "No network. Restore Wi-Fi (iwctl or nmcli) and re-run this script."
+  log_warn "Do not disable iwd while the installer still needs the internet."
+  exit 1
+}
+
+clone_suckless_repo() {
+  local repo_name="$1"
+  local target_dir="$2"
+  local extra_args=()
+
+  if [[ "${3:-}" == "shallow" ]]; then
+    extra_args=(--depth 1)
+  fi
+
+  if git clone "${extra_args[@]}" "https://git.suckless.org/$repo_name" "$target_dir"; then
+    return 0
+  fi
+
+  log_warn "Clone from git.suckless.org failed, trying GitHub mirror"
+  rm -rf "$target_dir"
+  git clone "${extra_args[@]}" "https://github.com/suckless/$repo_name" "$target_dir"
+}
+
+configure_networkmanager() {
+  log_step "Configuring NetworkManager"
+
+  sudo mkdir -p /etc/NetworkManager/conf.d
+  sudo tee /etc/NetworkManager/conf.d/wifi_backend.conf >/dev/null <<'EOF'
+[device]
+wifi.backend=iwd
+EOF
+
+  # Never stop iwd during install: it holds the current Wi-Fi link.
+  # NetworkManager will use iwd as its backend after reboot.
+  for svc in dhcpcd netctl systemd-networkd connman; do
+    if service_exists "$svc"; then
+      sudo systemctl disable --now "$svc.service" 2>/dev/null || true
+    fi
+  done
+
+  if service_exists iwd; then
+    sudo systemctl disable iwd.service 2>/dev/null || true
+  fi
+
+  sudo systemctl enable NetworkManager
+  log_success "NetworkManager enabled for next boot; current Wi-Fi left running"
+}
+
+start_networkmanager() {
+  log_step "Starting NetworkManager"
+  sudo systemctl enable --now NetworkManager
+  if ping -c 1 -W 3 archlinux.org >/dev/null 2>&1 || ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
+    log_success "NetworkManager is running"
+  else
+    log_warn "NetworkManager started, but the network check failed; iwd may still be providing the link"
+  fi
+}
+
 # dwm systray patch is written against this suckless/dwm commit.
 DWM_COMMIT="44dbc68"
 DWM_SYSTRAY_PATCH="$SCRIPT_DIR/patches/dwm-systray.diff"
@@ -98,9 +170,9 @@ build_and_install() {
 
   if [[ ! -d "$target_dir/.git" ]]; then
     if [[ -n "$git_pin" ]]; then
-      git clone "https://git.suckless.org/$repo_name" "$target_dir"
+      clone_suckless_repo "$repo_name" "$target_dir"
     else
-      git clone --depth 1 "https://git.suckless.org/$repo_name" "$target_dir"
+      clone_suckless_repo "$repo_name" "$target_dir" shallow
     fi
   elif [[ -z "$git_pin" ]]; then
     log_info "Updating $repo_name"
@@ -137,6 +209,8 @@ build_and_install() {
   log_success "$repo_name installed"
 }
 
+require_network
+
 log_step "Installing core packages"
 install_packages \
   git base-devel wget curl btop mc fastfetch neovim \
@@ -144,19 +218,12 @@ install_packages \
   ttf-dejavu ttf-liberation noto-fonts ttf-hack ttf-font-awesome \
   feh thunar ranger nano vim code obsidian slock conky dzen2 ly \
   polkit lazygit \
-  networkmanager network-manager-applet adwaita-icon-theme \
+  iwd networkmanager network-manager-applet adwaita-icon-theme \
   bluez bluez-utils blueman \
   pipewire pipewire-pulse wireplumber pamixer brightnessctl flameshot
 log_success "Core packages installed"
 
-log_step "Enabling NetworkManager"
-for svc in iwd dhcpcd netctl systemd-networkd connman; do
-  if systemctl list-unit-files "$svc.service" >/dev/null 2>&1; then
-    sudo systemctl disable --now "$svc.service" 2>/dev/null || true
-  fi
-done
-sudo systemctl enable --now NetworkManager
-log_success "NetworkManager enabled"
+configure_networkmanager
 
 log_step "Enabling Bluetooth"
 sudo systemctl enable --now bluetooth
@@ -169,6 +236,8 @@ log_success "User $USER added to video group"
 log_step "Enabling PipeWire user services"
 systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service || true
 log_success "PipeWire user services enabled"
+
+require_network
 
 log_step "Preparing suckless directory"
 mkdir -p "$HOME/suckless"
@@ -305,6 +374,8 @@ log_success "Ly enabled on tty1"
 
 
 
+require_network
+
 log_step "Installing Yay from AUR"
 if [[ -d "$HOME/yay" ]]; then
   git -C "$HOME/yay" pull --ff-only || true
@@ -336,6 +407,8 @@ if [[ -n "$SCRIPT_DIR" && "$SCRIPT_DIR" != "/" && -d "$SCRIPT_DIR" ]]; then
 else
   log_warn "Repository folder $SCRIPT_DIR was not removed"
 fi
+
+start_networkmanager
 
 log_step "Installation complete"
 sudo systemctl start ly@tty1.service || true
