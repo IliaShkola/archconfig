@@ -80,8 +80,8 @@ static const char *powermenucmd[] = { "/home/focus/.local/bin/powermenu", NULL};
 static const char *upvol[]   = { "/bin/sh", "-c", "pamixer -i 5; pkill -USR1 slstatus", NULL };
 static const char *downvol[] = { "/bin/sh", "-c", "pamixer -d 5; pkill -USR1 slstatus", NULL };
 static const char *mutevol[] = { "/bin/sh", "-c", "pamixer -t; pkill -USR1 slstatus", NULL };
-static const char *upbright[]   = { "/bin/sh", "-c", "brightnessctl -n 5% set 5%+; pkill -USR1 slstatus", NULL };
-static const char *downbright[] = { "/bin/sh", "-c", "brightnessctl -n 5% set 5%-; pkill -USR1 slstatus", NULL };
+static const char *upbright[]   = { "/bin/sh", "-c", "brightnessctl set 5%+; pkill -USR1 slstatus", NULL };
+static const char *downbright[] = { "/bin/sh", "-c", "brightnessctl set 5%-; pkill -USR1 slstatus", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
@@ -137,12 +137,6 @@ static const Button buttons[] = {
 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
-	{ ClkStatusText,        0,              Button1,        spawn,          {.v = mutevol } },
-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
-	{ ClkStatusText,        0,              Button4,        spawn,          {.v = upvol } },
-	{ ClkStatusText,        0,              Button5,        spawn,          {.v = downvol } },
-	{ ClkStatusText,        ShiftMask,      Button4,        spawn,          {.v = upbright } },
-	{ ClkStatusText,        ShiftMask,      Button5,        spawn,          {.v = downbright } },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
